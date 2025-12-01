@@ -6,7 +6,7 @@ The main repository contains 3 main script:
 
 * `training.py`, trains the objective function, using interatomic distance distributions that are computed from a dataset of known 3D structures;  
 * `plotting.py` plots the scoring profiles, i.e. the score (or estimated Gibbs free energy) as a function of the interatomic distance; 
-* `evaluation.py` is an objective function to evaluate predicted structures from the RNA-Puzzles dataset.
+* `scoring.py` is an objective function to evaluate predicted structures from the RNA-Puzzles dataset.
 
 ### Prerequisite
 
