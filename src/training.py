@@ -1,47 +1,66 @@
 import os, sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import math
-import model.pdbutils as PDB
-import model.model as model
+sys.path.append("../")
+import numpy as np
+import utils.pdb as pdb
+import utils.model as model
+
 
 def train(pdb_list):
     """
     Train an objective function using interatomic distance distributions
     from a dataset of known 3D structures.
     """
-    # Initialize counts
-    sum_pair_counts = {bp: [0] * model.max_distance for bp in model.base_pairs}
-    sum_reference_counts = [0] * model.max_distance
+    max_d = model.max_distance
+
+    # Initialize global counts 
+    sum_reference_counts = np.zeros(max_d, dtype=float)
+    sum_pair_counts = {bp: np.zeros(max_d, dtype=float) for bp in model.base_pairs}
 
     # Aggregate counts from all PDB files
     for pdb_file in pdb_list:
-        atoms = PDB.extract_c3_atoms(pdb_file)
-
+        atoms = pdb.extract_c3_atoms(pdb_file)
         reference_counts, pair_counts = model.distance_counts(atoms)
-        # Add to global counts
-        sum_reference_counts = [a + b for a, b in zip(sum_reference_counts, reference_counts)]
-        for bp in model.base_pairs:
-            sum_pair_counts[bp] = [a + b for a, b in zip(sum_pair_counts[bp], pair_counts[bp])]
 
-    # Compute scores
+        sum_reference_counts += np.asarray(reference_counts, dtype=float)
+        for bp in model.base_pairs:
+            sum_pair_counts[bp] += np.asarray(pair_counts[bp], dtype=float)
+
+    # Compute reference frequency distribution
     reference_distances_freq = model.frequencies(sum_reference_counts)
+
     scores = {}
     for bp in model.base_pairs:
-        distribution = [0.0] * model.max_distance
+        # Compute the pair-specific frequency distribution
         pair_distances_freq = model.frequencies(sum_pair_counts[bp])
-        for i in range(model.max_distance):
-            pair_freq = pair_distances_freq[i]
-            ref_freq = reference_distances_freq[i]
-            u = model.score(ref_freq, pair_freq)
-            if math.isnan(u) or u > model.maximum_score:
-                u = model.maximum_score
-            distribution[i] = u
-        scores[bp] = distribution
+
+        ref = reference_distances_freq
+        pair_f = pair_distances_freq
+        u = np.empty_like(ref)
+
+        # Positions where reference or pair frequency is zero
+        mask_zero = (ref == 0) | (pair_f == 0)
+
+        # Compute raw scores where valid
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = np.divide(pair_f, ref, out=np.zeros_like(pair_f), where=~mask_zero)
+            u_raw = -np.log(ratio)
+
+        u[:] = u_raw
+
+        # Replace invalid positions with maximum score
+        u[mask_zero] = model.maximum_score
+
+        # Replace NaN or excessive values with maximum score
+        mask_nan_or_big = np.isnan(u) | (u > model.maximum_score)
+        u[mask_nan_or_big] = model.maximum_score
+
+        scores[bp] = u.tolist()
+
     return scores
 
 
 def run_train():
-    # Collect all PDB files from data/pdbs/native/
+    # Collect all training PDB files from data/pdbs/native/
     dataset_dir = os.path.join("data", "pdbs", "native")
     if not os.path.isdir(dataset_dir):
         raise FileNotFoundError(f"Dataset folder {dataset_dir} not found")
@@ -55,17 +74,17 @@ def run_train():
     if not training_instances:
         raise RuntimeError(f"No PDB files found in {dataset_dir}")
 
-    # Train the profile
+    # Train statistical profiles
     distributions = train(training_instances)
 
-    # Write the profile
+    # Save trained profiles
     profile_dir = os.path.join("data", "profiles")
     os.makedirs(profile_dir, exist_ok=True)
 
     for bp in model.base_pairs:
         output_file = os.path.join(profile_dir, bp + ".txt")
         with open(output_file, "w") as f:
-            for i in range(model.max_distance):
-                f.write(f"{distributions[bp][i]}\n")
-    
+            for value in distributions[bp]:
+                f.write(f"{value}\n")
+
     print(f"Profiles saved to {profile_dir}")
