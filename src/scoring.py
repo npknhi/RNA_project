@@ -1,5 +1,5 @@
 import math
-import os, sys
+import os, sys, datetime
 sys.path.append("../")
 import csv
 import numpy as np
@@ -75,7 +75,7 @@ def run_score():
     # Save results
     results_dir = os.path.join("data", "scores")
     os.makedirs(results_dir, exist_ok=True)
-    output_file = os.path.join(results_dir, "scores.csv")
+    output_file = os.path.join(results_dir, f"{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_scores.csv")
 
     with open(output_file, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)

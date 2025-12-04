@@ -1,9 +1,11 @@
-import os, sys
-sys.path.append("../")
+import os
+import sys
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from utils.pair import set_pairs
 
+sys.path.append("../")
 nucleotides = ["A", "U", "G", "C"]
 base_pairs = set_pairs(nucleotides)
 distance_range = list(range(1, 21))  # precomputed once
@@ -35,7 +37,7 @@ def make_plot():
         # Fast loading
         distribution = np.loadtxt(filename).tolist()
 
-        output_file = os.path.join(plot_dir, f"{pair}.png")
+        output_file = os.path.join(plot_dir, f"{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{pair}.png")
         make_single_plot(distribution, distance_range, pair[0], pair[1], output_file)
         plt.show()
         plt.close()
