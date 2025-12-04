@@ -1,42 +1,78 @@
-"""Execution file."""
-
 import argparse
 import src.training as training
 import src.plotting as plotting
 import src.scoring as scoring
+import utils.model as model
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Run training, plotting, or scoring steps.")
+    parser = argparse.ArgumentParser(description="RNA scoring pipeline")
 
-    # Boolean flags for the three tasks
-    parser.add_argument("--train", action="store_true", default=False,
-                        help="Run training (default: False)")
+    # ===== FLAGS: all steps run by default =====
+    parser.add_argument("--no-train", action="store_true",
+                        help="Disable the training step")
+    parser.add_argument("--no-plot", action="store_true",
+                        help="Disable the plotting step")
+    parser.add_argument("--no-score", action="store_true",
+                        help="Disable the scoring step")
 
-    parser.add_argument("--plot", dest="plot", action="store_true", default=True,
-                        help="Run plotting (default: True)")
-    parser.add_argument("--no-plot", dest="plot", action="store_false",
-                        help="Disable plotting")
+    # ===== DIRECTORIES =====
+    parser.add_argument("--trainset", default="data/pdbs/train",
+                        help="Directory containing training PDB files")
+    parser.add_argument("--profiles", default="data/profiles",
+                        help="Directory to save or load trained profiles")
+    parser.add_argument("--testset", default="data/pdbs/test",
+                        help="Directory containing test PDB files")
+    parser.add_argument("--scores", default="data/scores",
+                        help="Directory to store scoring results")
 
-    parser.add_argument("--score", dest="score", action="store_true", default=True,
-                        help="Run scoring (default: True)")
-    parser.add_argument("--no-score", dest="score", action="store_false",
-                        help="Disable scoring")
+    # ===== MODEL PARAMETER OVERRIDES =====
+    parser.add_argument("--max-distance", type=int, default=None,
+                        help="Override maximum distance cutoff used in training/scoring")
+    parser.add_argument("--position-skip", type=int, default=None,
+                        help="Override minimum residue separation")
+    parser.add_argument("--maximum-score", type=int, default=None,
+                        help="Override maximum allowed statistical potential value")
 
     args = parser.parse_args()
 
-    # Execute based on flags
-    if args.train:
-        training.run_train()
+    # ===== APPLY MODEL PARAMETER OVERRIDES =====
+    if args.max_distance is not None:
+        model.max_distance = args.max_distance
+        model.max_distance_sq = args.max_distance ** 2
 
-    if args.plot:
+    if args.position_skip is not None:
+        model.position_skip = args.position_skip
+
+    if args.maximum_score is not None:
+        model.maximum_score = args.maximum_score
+
+    # ===== DETERMINE WHICH STEPS SHOULD RUN =====
+    run_training = not args.no_train
+    run_plotting = not args.no_plot
+    run_scoring = not args.no_score
+
+    # ===== PRINT PIPELINE SUMMARY =====
+    print("\n=== PIPELINE CONFIGURATION ===")
+    print("Training step: ", run_training)
+    print("Plotting step: ", run_plotting)
+    print("Scoring step:  ", run_scoring)
+    print("Training set directory:  ", args.trainset)
+    print("Profile directory:       ", args.profiles)
+    print("Test set directory:      ", args.testset)
+    print("Scores output directory: ", args.scores)
+    print("================================\n")
+
+    # ===== RUN THE SELECTED STEPS =====
+    if run_training:
+        training.run_train(args.trainset, args.profiles)
+
+    if run_plotting:
         plotting.make_plot()
 
-    if args.score:
-        scoring.run_score()
-
-
+    if run_scoring:
+        scoring.run_score(args.profiles, args.testset, args.scores)
 
 
 if __name__ == "__main__":
     main()
-

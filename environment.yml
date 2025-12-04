@@ -4,8 +4,8 @@ channels:
     - bioconda
     - nodefaults
 dependencies:
-    - python # Specify the version if necessary
+    - python 
     - numpy
     - jupyterlab
-    - rna_tools
     - biopython
+    - matplotlib

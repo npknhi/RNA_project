@@ -1,42 +1,14 @@
 import math
-import argparse
 import numpy as np
 from utils.pair import set_pairs, normalize_pair
-
-parser = argparse.ArgumentParser(description="Run training, plotting, or scoring steps.")
-
-# Numerical parameters
-parser.add_argument(
-    "--max_distance",
-    type=int,
-    default=20,
-    help="Maximum distance (default: 20)"
-)
-
-parser.add_argument(
-    "--position_skip",
-    type=int,
-    default=4,
-    help="Position skip value (default: 4)"
-)
-
-parser.add_argument(
-    "--maximum_score",
-    type=int,
-    default=10,
-    help="Maximum score (default: 10)"
-)
-
-args = parser.parse_args()
 
 # Parameters
 nucleotides = ("A", "U", "G", "C")
 base_pairs = set_pairs(nucleotides)
-max_distance = args.max_distance
+max_distance = 20
 max_distance_sq = max_distance * max_distance
-position_skip = args.position_skip
-maximum_score = args.maximum_score
-
+position_skip = 4
+maximum_score = 10
 
 def residue_distances(atoms):
     """
@@ -115,3 +87,4 @@ def score(reference_frequency, pair_frequency):
     if reference_frequency == 0 or pair_frequency == 0:
         return float("inf")
     return -math.log(pair_frequency / reference_frequency)
+
