@@ -1,0 +1,11 @@
+name: rna-score
+channels:
+    - conda-forge
+    - bioconda
+    - nodefaults
+dependencies:
+    - python # Specify the version if necessary
+    - numpy
+    - jupyterlab
+    - rna_tools
+    - biopython
