@@ -1,4 +1,5 @@
 import math
+from math import ceil
 import numpy as np
 from utils.pair import set_pairs, normalize_pair
 
@@ -9,12 +10,24 @@ max_distance = 20
 max_distance_sq = max_distance * max_distance
 position_skip = 4
 maximum_score = 10
+bin_width = 1.0                      
+num_bins = ceil(max_distance / bin_width)
 
 def residue_distances(atoms):
     """
-    Compute residue-residue distances using NumPy vectorization.
-    Returns list of (res_i, res_j, distance)
+    Compute pairwise distances between residues in an RNA structure.
+
+    Parameters
+    ----------
+    atoms : list
+        List of atom entries, where each entry contains chain, residue ID, and 3D coordinates.
+
+    Returns
+    -------
+    list of tuples
+        Each tuple is `(res_i, res_j, distance)` representing the distance between two residues.
     """
+    
     atoms = np.array(atoms, dtype=object)
 
     chains = atoms[:, 0]
@@ -52,16 +65,34 @@ def residue_distances(atoms):
 
     return distances
 
-
 def distance_counts(atoms):
     """
-    Compute counts of atomic distances.
+    Compute counts of residue-residue distances for reference and base pair-specific distributions.
+
+    Parameters
+    ----------
+    atoms : list
+        List of atom entries, where each entry contains chain, residue ID, and 3D coordinates.
+
+    Returns
+    -------
+    tuple`(reference_counts, pair_counts)` where `reference_counts` is a list of counts for all residues,
+    and `pair_counts` is a dictionary of counts per base pair.
     """
-    pair_counts = {bp: [0] * max_distance for bp in base_pairs}
-    reference_counts = [0] * max_distance
+
+    pair_counts = {bp: [0] * num_bins for bp in base_pairs}
+    reference_counts = [0] * num_bins
 
     for res_i, res_j, distance in residue_distances(atoms):
-        bin_index = int(distance)
+
+        bin_index = int(distance / bin_width)
+
+        # if bin_index >= num_bins:
+        #     continue
+
+        if bin_index >= num_bins:
+            bin_index = num_bins - 1
+
         base_pair = normalize_pair(res_i, res_j)
 
         reference_counts[bin_index] += 1
@@ -69,11 +100,21 @@ def distance_counts(atoms):
 
     return reference_counts, pair_counts
 
-
 def frequencies(counts):
     """
-    Normalize counts to frequencies.
+    Convert raw counts into normalized frequency values.
+
+    Parameters
+    ----------
+    counts : list or np.ndarray
+        Raw counts per distance bin.
+
+    Returns
+    -------
+    np.ndarray
+        Array of normalized frequencies corresponding to input counts.
     """
+
     counts = np.asarray(counts, dtype=float)
     total = counts.sum()
     if total == 0:
@@ -82,9 +123,21 @@ def frequencies(counts):
 
 def score(reference_frequency, pair_frequency):
     """
-    Compute u_ij = -log(f_ij / f_xx)
+    Compute the scoring term u_ij = -log(f_ij / f_xx) for a residue pair.
+
+    Parameters
+    ----------
+    reference_frequency : float
+        Reference frequency for a given distance bin.
+    pair_frequency : float
+        Frequency for the specific residue pair in the same bin.
+
+    Returns
+    -------
+    float
+        Score u_ij; returns `inf` if either frequency is zero.
     """
+
     if reference_frequency == 0 or pair_frequency == 0:
         return float("inf")
     return -math.log(pair_frequency / reference_frequency)
-

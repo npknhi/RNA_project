@@ -5,13 +5,10 @@ The method learns interatomic distance distributions from experimentally solved 
 
 ---
 
-## 🛠️ Build & Development Status
+## Build & Development Status
 
 - **Docker support**: *In progress*  
   A Dockerfile is being prepared to allow fully containerized execution of the entire pipeline.
-
-- **CIF file processing**: *In progress*  
-  Native support for `.cif` structure files is under active development and will be integrated soon.
   
 ---
 
@@ -23,8 +20,7 @@ The method learns interatomic distance distributions from experimentally solved 
 ├── main.py
 ├── environment.yml
 ├── data
-│   ├── cifs/
-│   ├── pdbs/
+│   ├── structures/
 │   │   ├── train/
 │   │   └── test/
 │   ├── plots/
@@ -38,7 +34,7 @@ The method learns interatomic distance distributions from experimentally solved 
 └── utils/
     ├── model.py
     ├── pair.py
-    ├── pdb.py
+    ├── rna_extractor.py
     └── interpolation.py
 ```
 
@@ -82,7 +78,7 @@ python main.py --no-score     # Skip scoring
 ### Use custom input/output directories
 
 ```bash
-python main.py     --trainset data/pdbs/train     --profiles data/profiles     --testset data/pdbs/test     --scores data/scores
+python main.py     --trainset data/structures/train     --profiles data/profiles     --testset data/structures/test     --scores data/scores
 ```
 
 ---
@@ -90,7 +86,7 @@ python main.py     --trainset data/pdbs/train     --profiles data/profiles     -
 ### Override model parameters
 
 ```bash
-python main.py     --max-distance 25     --position-skip 3     --maximum-score 12
+python main.py     --max-distance 25     --position-skip 3     --maximum-score 12     --maximum-score 2
 ```
 
 ---
@@ -134,7 +130,7 @@ data/scores/<timestamp>_scores.csv
 CSV format:
 
 ```
-pdb_file, score
+struct_file, score
 ```
 
 ---
@@ -154,6 +150,6 @@ Computes an estimated Gibbs free energy–based score for each RNA structure.
 Controls the entire pipeline with user-friendly command-line arguments.
 
 ### **`utils/`**
-Contains core utilities: PDB parsing, distance computation, interpolation, and model configuration.
+Contains core utilities: PDB/CIF parsing, distance computation, interpolation, and model configuration.
 
 

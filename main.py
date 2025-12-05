@@ -1,4 +1,5 @@
 import argparse
+from math import ceil
 import src.training as training
 import src.plotting as plotting
 import src.scoring as scoring
@@ -17,22 +18,24 @@ def main():
                         help="Disable the scoring step")
 
     # ===== DIRECTORIES =====
-    parser.add_argument("--trainset", default="data/pdbs/train",
-                        help="Directory containing training PDB files")
+    parser.add_argument("--trainset", default="data/structures/train",
+                        help="Directory containing training PDB/CIF files")
     parser.add_argument("--profiles", default="data/profiles",
                         help="Directory to save or load trained profiles")
-    parser.add_argument("--testset", default="data/pdbs/test",
-                        help="Directory containing test PDB files")
+    parser.add_argument("--testset", default="data/structures/test",
+                        help="Directory containing test PDB/CIF files")
     parser.add_argument("--scores", default="data/scores",
                         help="Directory to store scoring results")
 
     # ===== MODEL PARAMETER OVERRIDES =====
     parser.add_argument("--max-distance", type=int, default=None,
-                        help="Override maximum distance cutoff used in training/scoring")
+                        help="Set maximum allowed distance cutoff (default: 20)")
     parser.add_argument("--position-skip", type=int, default=None,
-                        help="Override minimum residue separation")
+                        help="Minimum residue separation (default: 4)")
     parser.add_argument("--maximum-score", type=int, default=None,
-                        help="Override maximum allowed statistical potential value")
+                        help="Maximum allowed score value in the statistical potential (default: 10)")
+    parser.add_argument("--bin-width", type=float, default=None,
+                        help="Histogram bin width for distance distributions (default: 1.0 Å)")
 
     args = parser.parse_args()
 
@@ -46,6 +49,10 @@ def main():
 
     if args.maximum_score is not None:
         model.maximum_score = args.maximum_score
+
+    if args.bin_width is not None:
+        model.bin_width = args.bin_width
+        model.num_bins = ceil(model.max_distance / model.bin_width)  
 
     # ===== DETERMINE WHICH STEPS SHOULD RUN =====
     run_training = not args.no_train

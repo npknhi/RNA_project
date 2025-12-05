@@ -6,14 +6,25 @@ import csv
 import numpy as np
 
 import utils.pair as pair
-import utils.pdb as pdb
+import utils.rna_extractor as rna_extractor
 import utils.model as model
 import utils.interpolation as interpolation
 
-
 def score(atoms, reference_distributions):
     """
-    Compute the estimated Gibbs free energy of an RNA conformation.
+    Compute an estimated Gibbs free energy score for an RNA conformation.
+
+    Parameters
+    ----------
+    atoms : list
+        List of atom objects representing the RNA conformation.
+    reference_distributions : dict
+        Dictionary mapping normalized residue pairs to reference distance distributions.
+
+    Returns
+    -------
+    float
+        Estimated Gibbs free energy of the RNA conformation.
     """
     distances = model.residue_distances(atoms)
     s = 0.0
@@ -25,23 +36,46 @@ def score(atoms, reference_distributions):
         key = norm_pair(residue_i, residue_j)
         rd = reference_distributions[key]
 
-        x1 = int(math.floor(d))
-        x0 = x1 + 1
+        centers = rd[:, 0]
+        scores  = rd[:, 1]
 
-        if x1 >= len(rd):
-            x1 = len(rd) - 1
-        if x0 >= len(rd):
-            x0 = len(rd) - 1
+        # Find where d fits in bin centers
+        idx = np.searchsorted(centers, d)
 
-        y1 = rd[x1]
-        y0 = rd[x0]
+        # Clamp to edges
+        if idx == 0:
+            s += scores[0]
+            continue
+        if idx >= len(centers):
+            s += scores[-1]
+            continue
+
+        x0 = centers[idx - 1]
+        y0 = scores[idx - 1]
+        x1 = centers[idx]
+        y1 = scores[idx]
 
         s += lin_interp(x0, y0, x1, y1, d)
 
     return s
 
-
 def run_score(model_dir, testset_dir, output_dir):
+    """
+    Score a set of RNA structures against reference profiles and save the results.
+
+    Parameters
+    ----------
+    model_dir : str
+        Path to the folder containing reference profile `.txt` files for base pairs.
+    testset_dir : str
+        Path to the folder containing PDB/CIF files of test RNA structures.
+    output_dir : str
+        Path to the folder where scoring results CSV will be saved.
+    
+    Returns
+    -------
+    None
+    """
 
     # === Load reference profiles ===
     if not os.path.isdir(model_dir):
@@ -50,31 +84,30 @@ def run_score(model_dir, testset_dir, output_dir):
     reference_distributions = {}
     for bp in model.base_pairs:
         filename = os.path.join(model_dir, f"{bp}.txt")
-        reference_distributions[bp] = np.loadtxt(filename).tolist()
+        data = np.loadtxt(filename)
+        reference_distributions[bp] = data
+        # reference_distributions[bp] = np.loadtxt(filename).tolist()
 
-
-    # === Load test PDBs ===
+    # === Load test PDBs/CIFs ===
     if not os.path.isdir(testset_dir):
         raise FileNotFoundError(f"Test dataset folder {testset_dir} not found")
 
     test_files = [
         os.path.join(testset_dir, f)
         for f in os.listdir(testset_dir)
-        if f.endswith(".pdb")
+        if f.lower().endswith((".pdb", ".cif", ".mmcif"))
     ]
 
     if not test_files:
-        raise RuntimeError(f"No PDB files found in {testset_dir}")
-
+        raise RuntimeError(f"No PDB/CIF files found in {testset_dir}")
 
     # === Score all test structures ===
     results = []
-    for pdb_file in test_files:
-        atoms = pdb.extract_c3_atoms(pdb_file)
+    for struct_file in test_files:
+        atoms = rna_extractor.extract_c3_atoms(struct_file)
         s = score(atoms, reference_distributions)
-        print(f" - {os.path.basename(pdb_file)}: {s:.4f}")
-        results.append((os.path.basename(pdb_file), s))
-
+        print(f" - {os.path.basename(struct_file)}: {s:.4f}")
+        results.append((os.path.basename(struct_file), s))
 
     # === Save results ===
     os.makedirs(output_dir, exist_ok=True)
@@ -85,11 +118,10 @@ def run_score(model_dir, testset_dir, output_dir):
 
     with open(output_file, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["pdb_file", "score"])
+        writer.writerow(["struct_file", "score"])
         writer.writerows(results)
 
     print(f"Scores saved to {output_file}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scoring module for RNA structures")
@@ -102,8 +134,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--testset",
-        default="data/pdbs/test",
-        help="Folder containing test PDB structures (default: data/pdbs/test)"
+        default="data/structures/test",
+        help="Folder containing test PDB/CIF structures (default: data/structures/test)"
     )
 
     parser.add_argument(

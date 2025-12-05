@@ -5,10 +5,19 @@ from utils.pair import set_pairs
 
 nucleotides = ["A", "U", "G", "C"]
 base_pairs = set_pairs(nucleotides)
-distance_range = list(range(1, 21))
-
 
 def make_plot():
+    """
+    Generate and save plots of interaction profiles for each base pair.
+
+    Parameters
+    ---------------
+    None
+
+    Returns
+    -------
+    None
+    """
     profile_dir = os.path.join("data", "profiles")
     plot_dir = os.path.join("data", "plots")
 
@@ -23,10 +32,13 @@ def make_plot():
             continue
 
         # Load distribution
-        distribution = np.loadtxt(filename).tolist()
+        data = np.loadtxt(filename)
+        distance = data[:, 0]
+        score = data[:, 1]
 
         plt.figure(figsize=(6, 4))
-        plt.plot(distance_range, distribution)
+        plt.plot(distance, score)
+        plt.xticks(distance[::2], rotation=45)
         plt.title(f"Interaction profile {pair}", fontsize=12)
         plt.xlabel("Distance (Å)")
         plt.ylabel("Score")
@@ -37,7 +49,6 @@ def make_plot():
         plt.close()
 
     print(f"\nAll plots saved to {plot_dir}")
-
 
 if __name__ == "__main__":
     make_plot()
