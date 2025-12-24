@@ -1,3 +1,5 @@
+# install.packages("languageserver")
+
 # R Script: Compute and Plot Kernel Density Estimate (KDE)
 
 set.seed(123)

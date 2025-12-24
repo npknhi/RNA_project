@@ -152,4 +152,7 @@ Controls the entire pipeline with user-friendly command-line arguments.
 ### **`utils/`**
 Contains core utilities: PDB/CIF parsing, distance computation, interpolation, and model configuration.
 
+# KDE
+Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. Especially useful for data distributions which are too irregular.
 
+Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)
