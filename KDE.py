@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 # the Kernel function
 def K(x):
@@ -44,3 +44,57 @@ plt.xlabel('$x$', fontsize=22)
 plt.ylabel('$f(x)$', fontsize=22, rotation='horizontal', labelpad=20)
 plt.legend(fontsize=14, shadow=True, title='$h$', title_fontsize=16)
 plt.show()
+
+# ---------------------------
+# 
+# """"""
+# ---------------------------
+
+
+# import seaborn as sns
+
+# def plot_distance_distributions(atoms):
+#     """
+#     Compute histograms and density curves for each nucleotide type based on pairwise distances.
+
+#     Parameters
+#     ----------
+#     atoms : list
+#         List of atom entries, where each entry contains chain, residue ID, and 3D coordinates.
+
+#     Returns
+#     -------
+#     None
+#     """
+
+#     # Compute all distances
+#     distances = residue_distances(atoms)
+
+#     # Prepare a dictionary for each nucleotide type
+#     nucleotide_distances = {nuc: [] for nuc in ("A", "U", "G", "C")}
+
+#     for res_i, res_j, d in distances:
+#         # Assign distance to both nucleotides (res_i and res_j)
+#         if res_i in nucleotide_distances:
+#             nucleotide_distances[res_i].append(d)
+#         if res_j in nucleotide_distances:
+#             nucleotide_distances[res_j].append(d)
+
+#     # Plot histograms + KDEs
+#     plt.figure(figsize=(10, 6))
+#     colors = {"A": "red", "U": "blue", "G": "green", "C": "orange"}
+
+#     for nuc, dist_list in nucleotide_distances.items():
+#         if len(dist_list) == 0:
+#             continue
+
+#         sns.histplot(dist_list, bins=num_bins, kde=False, stat="density",
+#                      color=colors[nuc], alpha=0.3, label=f"{nuc} histogram")
+
+#         sns.kdeplot(dist_list, color=colors[nuc], lw=2, label=f"{nuc} KDE")
+
+#     plt.title("Distance distributions per nucleotide")
+#     plt.xlabel("Distance (Å)")
+#     plt.ylabel("Density")
+#     plt.legend()
+#     plt.show()

@@ -156,3 +156,8 @@ Contains core utilities: PDB/CIF parsing, distance computation, interpolation, a
 Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. Especially useful for data distributions which are too irregular.
 
 Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)
+
+## Run KDE (python file)
+```bash
+python KDE.py
+```
