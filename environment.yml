@@ -9,3 +9,4 @@ dependencies:
     - jupyterlab
     - biopython
     - matplotlib
+    - r-base

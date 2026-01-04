@@ -17,6 +17,10 @@ def main():
     parser.add_argument("--no-score", action="store_true",
                         help="Disable the scoring step")
 
+    # ===== OPTIONAL KDE PLOT =====
+    parser.add_argument("--make-kde", action="store_true",
+                        help="Display KDE plots (default: False)")
+
     # ===== DIRECTORIES =====
     parser.add_argument("--trainset", default="data/structures/train",
                         help="Directory containing training PDB/CIF files")
@@ -58,11 +62,13 @@ def main():
     run_training = not args.no_train
     run_plotting = not args.no_plot
     run_scoring = not args.no_score
+    run_kde = args.make_kde
 
     # ===== PRINT PIPELINE SUMMARY =====
     print("\n=== PIPELINE CONFIGURATION ===")
     print("Training step: ", run_training)
     print("Plotting step: ", run_plotting)
+    print("KDE plotting:  ", run_kde)
     print("Scoring step:  ", run_scoring)
     print("Training set directory:  ", args.trainset)
     print("Profile directory:       ", args.profiles)
@@ -76,6 +82,9 @@ def main():
 
     if run_plotting:
         plotting.make_plot()
+
+    if run_kde:
+        plotting.plot_kde(args.testset, model.bin_width)
 
     if run_scoring:
         scoring.run_score(args.profiles, args.testset, args.scores)

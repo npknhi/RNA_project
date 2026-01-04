@@ -141,3 +141,57 @@ def score(reference_frequency, pair_frequency):
     if reference_frequency == 0 or pair_frequency == 0:
         return float("inf")
     return -math.log(pair_frequency / reference_frequency)
+
+def kde_distributions(
+    atoms,
+    bandwidth=0.5,
+    grid_step=0.1
+):
+    """
+    Compute KDE distributions of residue-residue distances per base pair.
+
+    Parameters
+    ----------
+    atoms : list
+        Atom entries as used by residue_distances().
+    bandwidth : float
+        Bandwidth (sigma) of the Gaussian kernel.
+    grid_step : float
+        Step size for the distance grid.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping base pairs to KDE arrays of shape (N, 2),
+        where columns are (distance, density).
+    """
+
+    # Collect raw distances per base pair
+    pair_distances = {bp: [] for bp in base_pairs}
+
+    for res_i, res_j, d in residue_distances(atoms):
+        bp = normalize_pair(res_i, res_j)
+        pair_distances[bp].append(d)
+
+    # Distance grid
+    grid = np.arange(0.0, max_distance, grid_step)
+
+    kde_results = {}
+
+    for bp, distances in pair_distances.items():
+        if len(distances) == 0:
+            kde_results[bp] = np.zeros((len(grid), 2))
+            continue
+
+        distances = np.asarray(distances)
+
+        # Gaussian KDE (manual, no scipy)
+        diff = grid[:, None] - distances[None, :]
+        kernel = np.exp(-0.5 * (diff / bandwidth) ** 2)
+
+        density = kernel.sum(axis=1)
+        density /= (len(distances) * bandwidth * math.sqrt(2 * math.pi))
+
+        kde_results[bp] = np.column_stack((grid, density))
+
+    return kde_results
