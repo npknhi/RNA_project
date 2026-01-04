@@ -84,7 +84,8 @@ def main():
         plotting.make_plot()
 
     if run_kde:
-        plotting.plot_kde(args.testset, model.bin_width)
+        model.save_pairwise_distances(args.testset)
+        plotting.plot_kde(bandwidth=model.bin_width)
 
     if run_scoring:
         scoring.run_score(args.profiles, args.testset, args.scores)
