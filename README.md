@@ -160,4 +160,6 @@ Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-e
 ## Run KDE (python file)
 ```bash
 python KDE.py
+
+python main.py --no-train --no-plot --no-score --make-kde
 ```

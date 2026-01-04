@@ -45,7 +45,6 @@ for h, color, alpha, width in zip(H, color_list, alpha_list, width_list):
 plt.xlabel('$x$', fontsize=22)
 plt.ylabel('$f(x)$', fontsize=22, rotation='horizontal', labelpad=20)
 plt.legend(fontsize=14, shadow=True, title='$h$', title_fontsize=16)
-plt.show()
 
 output_file = os.path.join(plot_dir, "KDE_try.png")
 plt.savefig(output_file, dpi=300)

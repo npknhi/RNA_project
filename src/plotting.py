@@ -1,10 +1,9 @@
 import os
 import argparse
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from utils.pair import set_pairs
-import utils.model as model
-import utils.rna_extractor as rna_extractor
 
 
 nucleotides = ["A", "U", "G", "C"]
@@ -54,96 +53,57 @@ def make_plot():
 
     print(f"\nAll plots saved to {plot_dir}")
 
-
-def plot_kde(structure_dir="data/structures/test", bandwidth=0.5):
+def plot_kde(distance_file="distances.csv", bandwidth=0.5):
     """
-    Compute and display KDEs of inter-residue distances across all RNA structures
-    in the given directory.
+    Read a TSV/CSV of base pair distances and plot KDEs per base pair.
 
     Parameters
     ----------
-    structure_dir : str
-        Folder containing PDB/CIF files to include.
+    distance_file : str
+        Path to the TSV/CSV file containing base pair distances.
     bandwidth : float
-        Bandwidth parameter for KDE smoothing.
+        KDE bandwidth (sigma).
     """
 
     plot_dir = os.path.join("data", "plots")
     os.makedirs(plot_dir, exist_ok=True)
-    
-    # --- Collect all structure files ---
-    if not os.path.isdir(structure_dir):
-        raise FileNotFoundError(f"Directory not found: {structure_dir}")
 
-    structure_files = [
-        os.path.join(structure_dir, f)
-        for f in os.listdir(structure_dir)
-        if f.lower().endswith((".pdb", ".cif", ".mmcif"))
-    ]
+    df = pd.read_csv(distance_file, sep="\t")
 
-    if not structure_files:
-        raise RuntimeError(f"No PDB/CIF files found in {structure_dir}")
+    if df.empty:
+        raise RuntimeError(f"No data found in {distance_file}")
 
-    # --- Aggregate distances per base pair ---
-    # Initialize a dictionary to store distances for each base pair
-    all_distances = {bp: [] for bp in model.base_pairs}
-
-    for struct_file in structure_files:
-        atoms = rna_extractor.extract_c3_atoms(struct_file)
-        distances = model.residue_distances(atoms)
-
-        for res_i, res_j, d in distances:
-            bp = model.normalize_pair(res_i, res_j)
-            all_distances[bp].append(d)
-
-    # --- Compute KDEs ---
-    kde_data = {}
+    base_pairs = df["base_pair"].unique()
+    max_distance = df["distance"].max()
     grid_step = 0.1
-    max_distance = model.max_distance
-    grid = np.arange(0.0, max_distance, grid_step)
+    grid = np.arange(0.0, max_distance + grid_step, grid_step)
 
-    for bp, dist_list in all_distances.items():
-        if not dist_list:
-            kde_data[bp] = np.zeros((len(grid), 2))
+    plt.figure(figsize=(10, 6))
+
+    for bp in base_pairs:
+        distances = df.loc[df["base_pair"] == bp, "distance"].values
+        if len(distances) == 0:
             continue
 
-        distances = np.asarray(dist_list)
+        # Gaussian KDE
         diff = grid[:, None] - distances[None, :]
         kernel = np.exp(-0.5 * (diff / bandwidth) ** 2)
         density = kernel.sum(axis=1)
-        density /= (len(distances) * bandwidth * (2 * np.pi) ** 0.5)
-        kde_data[bp] = np.column_stack((grid, density))
+        density /= len(distances) * bandwidth * np.sqrt(2 * np.pi)
 
-    # --- Plot ---
-    plt.figure(figsize=(10, 6))
-
-    colors = {
-        "AA": "red", "AU": "orange", "AG": "green", "AC": "blue",
-        "CC": "red", "CG": "orange", "CU": "green",
-        "GG": "red", "GU": "orange",
-        "UU": "red"
-    }
-
-    for bp, data in kde_data.items():
-        x = data[:, 0]
-        y = data[:, 1]
-        if y.sum() == 0:
-            continue
-
-        plt.plot(x, y, label=bp, color=colors.get(bp, "black"))
+        plt.plot(grid, density, label=bp)
 
     plt.xlabel("Distance (Å)")
     plt.ylabel("Density")
-    plt.title(f"KDE of inter-residue distances ({len(structure_files)} structures)")
+    plt.title(f"KDE of inter-residue distances from {distance_file}")
     plt.legend()
     plt.tight_layout()
-    plt.show()
 
     output_file = os.path.join(plot_dir, "KDE_all.png")
     plt.savefig(output_file, dpi=300)
     plt.close()
-    print(f"\n{output_file} saved to {plot_dir}")
 
+    print(f"\n{output_file} saved to {plot_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scoring module for RNA structures")

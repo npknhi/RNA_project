@@ -1,10 +1,15 @@
+# install.packages('IRkernel')
+# IRkernel::installspec(user = FALSE)
+
 # install.packages("languageserver")
 
 # R Script: Compute and Plot Kernel Density Estimate (KDE)
 
 set.seed(123)
 # Example data: 1000 random points from normal distribution
-data <- rnorm(1000, mean = 0, sd = 1)
+data.df <- read.table(file = "./distances.csv", header = T)
+data <- data.df$distance
+# data <- rnorm(1000, mean = 0, sd = 1)
 
 # Compute KDE
 kde <- density(data)                            # density() computes kernel density estimate
@@ -27,3 +32,4 @@ polygon(kde, col = rgb(0,0,1,0.2), border = NA)
 
 # 5Overlay histogram
 hist(data, probability = TRUE, col = rgb(1,0,0,0.3), add = TRUE)
+

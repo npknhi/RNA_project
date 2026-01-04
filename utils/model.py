@@ -1,7 +1,10 @@
 import math
 from math import ceil
 import numpy as np
+import os
+import csv
 from utils.pair import set_pairs, normalize_pair
+from utils.rna_extractor import extract_c3_atoms
 
 # Parameters
 nucleotides = ("A", "U", "G", "C")
@@ -142,56 +145,42 @@ def score(reference_frequency, pair_frequency):
         return float("inf")
     return -math.log(pair_frequency / reference_frequency)
 
-def kde_distributions(
-    atoms,
-    bandwidth=0.5,
-    grid_step=0.1
-):
+
+def save_pairwise_distances(structure_dir="data/structures/test", output_file="distances.csv"):
     """
-    Compute KDE distributions of residue-residue distances per base pair.
+    Extract all base pair distances from RNA structures in a directory
+    and save them in a CSV/TSV file.
 
     Parameters
     ----------
-    atoms : list
-        Atom entries as used by residue_distances().
-    bandwidth : float
-        Bandwidth (sigma) of the Gaussian kernel.
-    grid_step : float
-        Step size for the distance grid.
-
-    Returns
-    -------
-    dict
-        Dictionary mapping base pairs to KDE arrays of shape (N, 2),
-        where columns are (distance, density).
+    structure_dir : str
+        Folder containing PDB/CIF files.
+    output_file : str
+        Path to the CSV file to save distances.
     """
 
-    # Collect raw distances per base pair
-    pair_distances = {bp: [] for bp in base_pairs}
+    if not os.path.isdir(structure_dir):
+        raise FileNotFoundError(f"Directory not found: {structure_dir}")
 
-    for res_i, res_j, d in residue_distances(atoms):
-        bp = normalize_pair(res_i, res_j)
-        pair_distances[bp].append(d)
+    structure_files = [
+        os.path.join(structure_dir, f)
+        for f in os.listdir(structure_dir)
+        if f.lower().endswith((".pdb", ".cif", ".mmcif"))
+    ]
 
-    # Distance grid
-    grid = np.arange(0.0, max_distance, grid_step)
+    if not structure_files:
+        raise RuntimeError(f"No PDB/CIF files found in {structure_dir}")
 
-    kde_results = {}
+    with open(output_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["structure_file", "base_pair", "distance"])
 
-    for bp, distances in pair_distances.items():
-        if len(distances) == 0:
-            kde_results[bp] = np.zeros((len(grid), 2))
-            continue
+        for struct_file in structure_files:
+            atoms = extract_c3_atoms(struct_file)
+            distances = residue_distances(atoms)
 
-        distances = np.asarray(distances)
+            for res_i, res_j, d in distances:
+                bp = normalize_pair(res_i, res_j)
+                writer.writerow([os.path.basename(struct_file), bp, d])
 
-        # Gaussian KDE (manual, no scipy)
-        diff = grid[:, None] - distances[None, :]
-        kernel = np.exp(-0.5 * (diff / bandwidth) ** 2)
-
-        density = kernel.sum(axis=1)
-        density /= (len(distances) * bandwidth * math.sqrt(2 * math.pi))
-
-        kde_results[bp] = np.column_stack((grid, density))
-
-    return kde_results
+    print(f"Distances saved to {output_file}")
