@@ -159,7 +159,20 @@ Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-e
 
 ## Run KDE (python file)
 ```bash
-python KDE.py
-
 python main.py --no-train --no-plot --no-score --make-kde
+```
+
+## Run KDE (Rscript)
+As of now:
+* you implicitely create a KDE plot with python file when creatiing `distances.csv`.
+* **you get this message twice**: Rscript does not open a graphics window like RStudio. R creates a null graphics device if no interactive device is available
+```
+null device 
+          1
+```
+
+```bash
+# Create the distances file
+python main.py --no-train --no-plot --no-score --make-kde
+Rscript KDE.r
 ```
