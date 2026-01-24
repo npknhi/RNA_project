@@ -200,33 +200,44 @@ Rscript src/KDE.r data/distances.csv TRUE
 
 ## Non-log Scoring Formula
 
-In addition to the classical logarithmic potential of mean force, the pipeline implements an alternative **non-logarithmic scoring formulation**.
+In addition to the classical logarithmic potential of mean force, the pipeline implements an alternative **non-logarithmic scoring formulation**, inspired by the total information gain approach.
 
 ### Logarithmic formulation (default)
 
 The standard potential of mean force is defined as:
 
-\[
-U_{ij}(r) = - \log \left( \frac{f_{ij}(r)}{f_{\text{ref}}(r)} \right)
-\]
+$$
+U_{ij}(r) = -\log \left( \frac{f_{ij}(r)}{f_{\text{ref}}(r)} \right)
+$$
 
 where:
-- \( f_{ij}(r) \) is the observed distance frequency for nucleotide pair \( i,j \),
-- \( f_{\text{ref}}(r) \) is the reference distance frequency.
 
-This formulation strongly penalizes rare or unfavorable interactions.
+- $f_{ij}(r)$ denotes the observed distance frequency for nucleotide pair $(i,j)$,
+- $f_{\text{ref}}(r)$ denotes the reference distance frequency.
+
+This logarithmic formulation strongly penalizes rare or unfavorable interactions, leading to sharp energy variations when observed frequencies deviate from the reference state.
 
 ---
 
 ### Non-logarithmic formulation
 
-As an alternative, a non-log scoring function is implemented:
+As an alternative, a non-logarithmic scoring function is implemented to provide a smoother penalty profile:
 
-\[
-U_{ij}(r) = \frac{f_{\text{ref}}(r) - f_{ij}(r)}{f_{\text{ref}}(r)}
-\]
+$$
+U_{ij}(r) =
+- \frac{f_{ij}(r) - f_{\text{ref}}(r)}{f_{\text{ref}}(r)}
+$$
 
-This formulation avoids the logarithm and produces a smoother penalty for rare interactions, while preserving the same reference state.
+This expression represents the **pairwise contribution** of nucleotide pair $(i,j)$ at distance $r$ to the overall score.
+
+The total non-log score of a structure is then obtained by summing over all interacting pairs:
+
+$$
+\text{score} = \sum_{i,j} U_{ij}(r)
+$$
+
+By avoiding the logarithmic transformation, this formulation reduces the impact of low-frequency events while preserving the same reference state. As a result, it yields a smoother and more robust scoring function for model quality assessment.
+
 
 ---
 
