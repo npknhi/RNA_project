@@ -223,7 +223,7 @@ This logarithmic formulation strongly penalizes rare or unfavorable interactions
 As an alternative, a non-logarithmic scoring function is implemented to provide a smoother penalty profile:
 
 $$
-U_{ij}(r) =
+U_{ij}(r) =-
 \frac{f_{ij}(r) - f_{\text{ref}}(r)}{f_{\text{ref}}(r)}
 $$
 
