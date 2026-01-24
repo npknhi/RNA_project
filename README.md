@@ -228,13 +228,14 @@ U_{ij}(r) =
 - \frac{f_{ij}(r) - f_{\text{ref}}(r)}{f_{\text{ref}}(r)}
 $$
 
-This expression represents the **pairwise contribution** of nucleotide pair $(i,j)$ at distance $r$ to the overall score.
+This expression represents the pairwise contribution of nucleotide pair $(i,j)$ at distance $r$ to the overall score.
 
 The total non-log score of a structure is then obtained by summing over all interacting pairs:
 
 $$
 \text{score} = \sum_{i,j} U_{ij}(r)
 $$
+
 
 By avoiding the logarithmic transformation, this formulation reduces the impact of low-frequency events while preserving the same reference state. As a result, it yields a smoother and more robust scoring function for model quality assessment.
 
