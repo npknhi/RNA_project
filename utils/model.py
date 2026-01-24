@@ -1,10 +1,12 @@
+# utils/model.py
+
 import math
 from math import ceil
 import numpy as np
 import os
 import csv
 from utils.pair import set_pairs, normalize_pair
-from utils.rna_extractor import extract_c3_atoms
+from utils.rna_extractor import extract_c3_atoms, extract_all_atom_residues
 
 # Parameters
 nucleotides = ("A", "U", "G", "C")
@@ -15,6 +17,7 @@ position_skip = 4
 maximum_score = 10
 bin_width = 1.0                      
 num_bins = ceil(max_distance / bin_width)
+atom_mode = "c3prime" 
 
 def residue_distances(atoms):
     """
@@ -145,8 +148,60 @@ def score(reference_frequency, pair_frequency):
         return float("inf")
     return -math.log(pair_frequency / reference_frequency)
 
+def residue_distances_all_atom(residues):
+    """
+    residues: [(chain_id, resseq, resname, coords(N,3)), ...]
+    Return list of (resname_i, resname_j, min_distance)
+    """
+    if not residues:
+        return []
 
-def save_pairwise_distances(structure_dir="data/structures/test", output_file="distances.csv"):
+    chains = [r[0] for r in residues]
+    resnames = [r[2] for r in residues]
+    coords_list = [r[3] for r in residues]
+
+    n = len(residues)
+    distances = []
+
+    for i in range(n - position_skip):
+        chain_i = chains[i]
+        coords_i = coords_list[i]
+
+        for j in range(i + position_skip, n):
+            if chains[j] != chain_i:
+                continue
+
+            coords_j = coords_list[j]
+
+            # min squared distance between two point clouds
+            diff = coords_i[:, None, :] - coords_j[None, :, :]
+            d2_min = float(np.sum(diff * diff, axis=2).min())
+
+            if d2_min < max_distance_sq:
+                distances.append((resnames[i], resnames[j], math.sqrt(d2_min)))
+
+    return distances
+
+
+def distance_counts_all_atom(residues):
+    """
+    Compute counts for reference and base pair-specific distributions using all-atom min distances.
+    """
+    pair_counts = {bp: [0] * num_bins for bp in base_pairs}
+    reference_counts = [0] * num_bins
+
+    for res_i, res_j, distance in residue_distances_all_atom(residues):
+        bin_index = int(distance / bin_width)
+        if bin_index >= num_bins:
+            bin_index = num_bins - 1
+
+        bp = normalize_pair(res_i, res_j)
+        reference_counts[bin_index] += 1
+        pair_counts[bp][bin_index] += 1
+
+    return reference_counts, pair_counts
+
+def save_pairwise_distances(structure_dir="data/structures/test", output_file="data/distances.csv"):
     """
     Extract all base pair distances from RNA structures in a directory
     and save them in a CSV/TSV file.
@@ -176,8 +231,12 @@ def save_pairwise_distances(structure_dir="data/structures/test", output_file="d
         writer.writerow(["structure_file", "base_pair", "distance"])
 
         for struct_file in structure_files:
-            atoms = extract_c3_atoms(struct_file)
-            distances = residue_distances(atoms)
+            if atom_mode == "all_atom":
+                residues = extract_all_atom_residues(struct_file)
+                distances = residue_distances_all_atom(residues)
+            else:
+                atoms = extract_c3_atoms(struct_file)
+                distances = residue_distances(atoms)
 
             for res_i, res_j, d in distances:
                 bp = normalize_pair(res_i, res_j)

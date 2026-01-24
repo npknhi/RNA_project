@@ -1,3 +1,5 @@
+# src/plotting.py
+
 import os
 import argparse
 import numpy as np
@@ -53,7 +55,7 @@ def make_plot():
 
     print(f"\nAll plots saved to {plot_dir}")
 
-def plot_kde(distance_file="distances.csv", bandwidth=0.5):
+def plot_kde(distance_file="data/distances.csv", bandwidth=0.5):
     """
     Read a TSV/CSV of base pair distances and plot KDEs per base pair.
 

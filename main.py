@@ -1,3 +1,5 @@
+# main.py
+
 import argparse
 from math import ceil
 import src.training as training
@@ -16,7 +18,15 @@ def main():
                         help="Disable the plotting step")
     parser.add_argument("--no-score", action="store_true",
                         help="Disable the scoring step")
+    
+    # ===== ATOM REPRESENTATION MODE =====
+    parser.add_argument("--atom-mode", choices=["c3prime", "all_atom"], default="c3prime",
+                        help="Atom representation: C3' only or all-atom (default: c3prime)")
 
+    # ===== SCORE FORMULA =====
+    parser.add_argument("--score-formula", choices=["log", "linear"], default="log",
+                        help="Scoring formula used during training: log (PMF) or linear (non-log)")
+    
     # ===== OPTIONAL KDE PLOT =====
     parser.add_argument("--make-kde", action="store_true",
                         help="Display KDE plots (default: False)")
@@ -43,6 +53,9 @@ def main():
 
     args = parser.parse_args()
 
+    # ===== APPLY ATOM MODE =====
+    model.atom_mode = args.atom_mode
+
     # ===== APPLY MODEL PARAMETER OVERRIDES =====
     if args.max_distance is not None:
         model.max_distance = args.max_distance
@@ -56,7 +69,7 @@ def main():
 
     if args.bin_width is not None:
         model.bin_width = args.bin_width
-        model.num_bins = ceil(model.max_distance / model.bin_width)  
+        model.num_bins = ceil(model.max_distance / model.bin_width)
 
     # ===== DETERMINE WHICH STEPS SHOULD RUN =====
     run_training = not args.no_train
@@ -66,6 +79,8 @@ def main():
 
     # ===== PRINT PIPELINE SUMMARY =====
     print("\n=== PIPELINE CONFIGURATION ===")
+    print("Atom mode:      ", model.atom_mode)
+    print("Score formula:  ", args.score_formula)
     print("Training step: ", run_training)
     print("Plotting step: ", run_plotting)
     print("KDE plotting:  ", run_kde)
@@ -78,7 +93,7 @@ def main():
 
     # ===== RUN THE SELECTED STEPS =====
     if run_training:
-        training.run_train(args.trainset, args.profiles)
+        training.run_train(args.trainset, args.profiles, score_formula=args.score_formula) 
 
     if run_plotting:
         plotting.make_plot()

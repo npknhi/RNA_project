@@ -1,3 +1,5 @@
+# src/training.py
+
 import os
 import argparse
 import numpy as np
@@ -6,7 +8,8 @@ from math import ceil
 import utils.rna_extractor as rna_extractor
 import utils.model as model
 
-def train(struct_list):
+
+def train(struct_list, score_formula="log"):
     """
     Train an objective function by computing interatomic distance distributions from a set of RNA structures.
 
@@ -14,6 +17,8 @@ def train(struct_list):
     ----------
     struct_list : list
         List of file paths to PDB/CIF structures used for training.
+    score_formula : str
+        Scoring formula to use: "log" (PMF) or "linear" (non-log).
 
     Returns
     -------
@@ -23,15 +28,18 @@ def train(struct_list):
 
     num_bins = model.num_bins
 
-    # Initialize global counts 
-    sum_reference_counts = np.zeros(num_bins, dtype=float)     # >>> changed
-    sum_pair_counts = {bp: np.zeros(num_bins, dtype=float) for bp in model.base_pairs}  # >>> changed
+    # Initialize global counts
+    sum_reference_counts = np.zeros(num_bins, dtype=float)
+    sum_pair_counts = {bp: np.zeros(num_bins, dtype=float) for bp in model.base_pairs}
 
     # Aggregate counts from all PDB/CIF files
     for struct_file in struct_list:
-        atoms = rna_extractor.extract_c3_atoms(struct_file)
-
-        reference_counts, pair_counts = model.distance_counts(atoms)
+        if model.atom_mode == "all_atom":
+            residues = rna_extractor.extract_all_atom_residues(struct_file)
+            reference_counts, pair_counts = model.distance_counts_all_atom(residues)
+        else:
+            atoms = rna_extractor.extract_c3_atoms(struct_file)
+            reference_counts, pair_counts = model.distance_counts(atoms)
 
         sum_reference_counts += np.asarray(reference_counts, dtype=float)
 
@@ -53,8 +61,11 @@ def train(struct_list):
         mask_zero = (ref == 0) | (pf == 0)
 
         with np.errstate(divide="ignore", invalid="ignore"):
-            ratio = np.divide(pf, ref, out=np.zeros_like(pf), where=~mask_zero)
-            u_raw = -np.log(ratio)
+            if score_formula == "log":
+                ratio = np.divide(pf, ref, out=np.zeros_like(pf), where=~mask_zero)
+                u_raw = -np.log(ratio)
+            else:  # "linear" non-log
+                u_raw = -(pf - ref) / ref
 
         u[:] = u_raw
         u[mask_zero] = model.maximum_score
@@ -64,16 +75,19 @@ def train(struct_list):
 
     return scores
 
-def run_train(train_dir, profile_dir):
+
+def run_train(train_dir, profile_dir, score_formula="log"):
     """
     Train score distributions from a dataset of PDB structures and save the results to profile files.
 
     Parameters
     ----------
     train_dir : str
-        Path to the folder containing PDB files used for training.
+        Path to the folder containing PDB/CIF files used for training.
     profile_dir : str
         Path to the folder where the computed profile `.txt` files will be saved.
+    score_formula : str
+        Scoring formula to use: "log" (PMF) or "linear" (non-log).
 
     Returns
     -------
@@ -93,24 +107,16 @@ def run_train(train_dir, profile_dir):
         raise RuntimeError(f"No PDB/CIF files found in {train_dir}")
 
     # Train
-    distributions = train(train_files)
+    distributions = train(train_files, score_formula=score_formula)
 
     # Save profile output
     os.makedirs(profile_dir, exist_ok=True)
 
-    # for bp in model.base_pairs:
-    #     output_file = os.path.join(profile_dir, f"{bp}.txt")
-    #     with open(output_file, "w") as f:
-    #         for value in distributions[bp]:
-    #             f.write(f"{value}\n")
-
     for bp in model.base_pairs:
         output_file = os.path.join(profile_dir, f"{bp}.txt")
         with open(output_file, "w") as f:
-
-            # >>> added: compute bin centers
+            # compute bin centers
             distance_range = (np.arange(model.num_bins) + 0.5) * model.bin_width
-
             for dist, value in zip(distance_range, distributions[bp]):
                 f.write(f"{dist:.6f}\t{value}\n")
 
@@ -144,13 +150,15 @@ if __name__ == "__main__":
     parser.add_argument("--bin-width", type=float, default=1.0,
                         help="Histogram bin width for distance distributions (default: 1.0 Å)")
 
+    parser.add_argument("--score-formula", choices=["log", "linear"], default="log",
+                        help="Scoring formula: log (PMF) or linear (non-log)")
 
     args = parser.parse_args()
 
     # Apply overrides only if provided
     if args.max_distance is not None:
         model.max_distance = args.max_distance
-        model.max_distance_sq = args.max_distance ** 2  
+        model.max_distance_sq = args.max_distance ** 2
 
     if args.position_skip is not None:
         model.position_skip = args.position_skip
@@ -163,12 +171,13 @@ if __name__ == "__main__":
         model.num_bins = ceil(model.max_distance / model.bin_width)
 
     print("Training parameters in use:")
-    print("  trainset_dir   =", args.trainset)
-    print("  output_dir     =", args.output)
-    print("  max_distance   =", model.max_distance)
-    print("  position_skip  =", model.position_skip)
-    print("  maximum_score  =", model.maximum_score)
-    print("  bin_width      =", model.bin_width)                     
-    print("  num_bins       =", model.num_bins)                      
+    print("  trainset_dir    =", args.trainset)
+    print("  output_dir      =", args.output)
+    print("  max_distance    =", model.max_distance)
+    print("  position_skip   =", model.position_skip)
+    print("  maximum_score   =", model.maximum_score)
+    print("  bin_width       =", model.bin_width)
+    print("  num_bins        =", model.num_bins)
+    print("  score_formula   =", args.score_formula)
 
-    run_train(args.trainset, args.output)
+    run_train(args.trainset, args.output, score_formula=args.score_formula)

@@ -1,5 +1,15 @@
 # RNA Structure Scoring Pipeline
 
+**Authors**  
+- **Phuc Khanh Nhi NGUYEN**  
+- **Emilie Jeanne MAYI**  
+
+**Program**  
+*Master 2 GENIOMHE-AI*  
+*Université d’Évry Paris-Saclay*
+
+---
+
 This repository provides a complete pipeline for training, visualizing, and applying a knowledge-based statistical potential to evaluate RNA 3D structures.  
 The method learns interatomic distance distributions from experimentally solved RNA structures and uses them to score predicted conformations.
 
@@ -7,9 +17,9 @@ The method learns interatomic distance distributions from experimentally solved 
 
 ## Build & Development Status
 
-- **Docker support**: *In progress*  
+**Docker support**: *In progress*  
   A Dockerfile is being prepared to allow fully containerized execution of the entire pipeline.
-  
+
 ---
 
 ## Repository Structure
@@ -20,22 +30,23 @@ The method learns interatomic distance distributions from experimentally solved 
 ├── main.py
 ├── environment.yml
 ├── data
-│   ├── structures/
-│   │   ├── train/
-│   │   └── test/
-│   ├── plots/
-│   ├── profiles/
-│   └── scores/
-├── reference/
+│ ├── structures/
+│ │ ├── train/
+│ │ └── test/
+│ ├── plots/
+│ ├── profiles/
+│ ├── scores/
+│ └── distances.csv
 ├── src/
-│   ├── training.py
-│   ├── plotting.py
-│   └── scoring.py
+│ ├── training.py
+│ ├── plotting.py
+│ ├── scoring.py
+│ └── KDE.r
 └── utils/
-    ├── model.py
-    ├── pair.py
-    ├── rna_extractor.py
-    └── interpolation.py
+│ ├── model.py
+│ ├── pair.py
+│ ├── rna_extractor.py
+│ └── interpolation.py
 ```
 
 ---
@@ -75,6 +86,15 @@ python main.py --no-score     # Skip scoring
 
 ---
 
+### Atom representation
+
+```bash
+python main.py --atom-mode c3prime
+python main.py --atom-mode all_atom
+```
+
+---
+
 ### Use custom input/output directories
 
 ```bash
@@ -86,7 +106,7 @@ python main.py     --trainset data/structures/train     --profiles data/profiles
 ### Override model parameters
 
 ```bash
-python main.py     --max-distance 25     --position-skip 3     --maximum-score 12     --maximum-score 2
+python main.py     --max-distance 25     --position-skip 3     --bin-width 1.0     --maximum-score 2
 ```
 
 ---
@@ -99,6 +119,7 @@ Saved to:
 
 ```
 data/profiles/*.txt
+data/profiles_all_atom/*.txt
 ```
 
 Each file corresponds to a nucleotide pair (e.g., `AU.txt`, `CG.txt`).
@@ -164,7 +185,7 @@ python main.py --no-train --no-plot --no-score --make-kde
 
 ## Run KDE (Rscript)
 As of now:
-* you implicitely create a KDE plot with python file when creatiing `distances.csv`.
+* you implicitly create a KDE plot with python file when creating `distances.csv`.
 * **you get this message twice**: Rscript does not open a graphics window like RStudio. R creates a null graphics device if no interactive device is available
 ```
 null device 
@@ -174,5 +195,45 @@ null device
 ```bash
 # Create the distances file
 python main.py --no-train --no-plot --no-score --make-kde
-Rscript KDE.r
+Rscript src/KDE.r data/distances.csv TRUE
 ```
+
+## Non-log Scoring Formula
+
+In addition to the classical logarithmic potential of mean force, the pipeline implements an alternative **non-logarithmic scoring formulation**.
+
+### Logarithmic formulation (default)
+
+The standard potential of mean force is defined as:
+
+\[
+U_{ij}(r) = - \log \left( \frac{f_{ij}(r)}{f_{\text{ref}}(r)} \right)
+\]
+
+where:
+- \( f_{ij}(r) \) is the observed distance frequency for nucleotide pair \( i,j \),
+- \( f_{\text{ref}}(r) \) is the reference distance frequency.
+
+This formulation strongly penalizes rare or unfavorable interactions.
+
+---
+
+### Non-logarithmic formulation
+
+As an alternative, a non-log scoring function is implemented:
+
+\[
+U_{ij}(r) = \frac{f_{\text{ref}}(r) - f_{ij}(r)}{f_{\text{ref}}(r)}
+\]
+
+This formulation avoids the logarithm and produces a smoother penalty for rare interactions, while preserving the same reference state.
+
+---
+
+### Usage
+
+The non-log scoring formulation can be selected at training time using:
+
+```bash
+python main.py --score-formula linear
+

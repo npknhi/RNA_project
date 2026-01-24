@@ -1,3 +1,5 @@
+# src/scoring.py
+
 import math
 import os
 import argparse
@@ -9,6 +11,36 @@ import utils.pair as pair
 import utils.rna_extractor as rna_extractor
 import utils.model as model
 import utils.interpolation as interpolation
+
+def score_from_distances(distances, reference_distributions):
+    s = 0.0
+    norm_pair = pair.normalize_pair
+    lin_interp = interpolation.linear_interpolation
+
+    for residue_i, residue_j, d in distances:
+        key = norm_pair(residue_i, residue_j)
+        rd = reference_distributions[key]
+
+        centers = rd[:, 0]
+        scores  = rd[:, 1]
+
+        idx = np.searchsorted(centers, d)
+
+        if idx == 0:
+            s += scores[0]
+            continue
+        if idx >= len(centers):
+            s += scores[-1]
+            continue
+
+        x0 = centers[idx - 1]
+        y0 = scores[idx - 1]
+        x1 = centers[idx]
+        y1 = scores[idx]
+
+        s += lin_interp(x0, y0, x1, y1, d)
+
+    return s
 
 def score(atoms, reference_distributions):
     """
@@ -27,37 +59,7 @@ def score(atoms, reference_distributions):
         Estimated Gibbs free energy of the RNA conformation.
     """
     distances = model.residue_distances(atoms)
-    s = 0.0
-
-    norm_pair = pair.normalize_pair
-    lin_interp = interpolation.linear_interpolation
-
-    for residue_i, residue_j, d in distances:
-        key = norm_pair(residue_i, residue_j)
-        rd = reference_distributions[key]
-
-        centers = rd[:, 0]
-        scores  = rd[:, 1]
-
-        # Find where d fits in bin centers
-        idx = np.searchsorted(centers, d)
-
-        # Clamp to edges
-        if idx == 0:
-            s += scores[0]
-            continue
-        if idx >= len(centers):
-            s += scores[-1]
-            continue
-
-        x0 = centers[idx - 1]
-        y0 = scores[idx - 1]
-        x1 = centers[idx]
-        y1 = scores[idx]
-
-        s += lin_interp(x0, y0, x1, y1, d)
-
-    return s
+    return score_from_distances(distances, reference_distributions)
 
 def run_score(model_dir, testset_dir, output_dir):
     """
@@ -104,10 +106,17 @@ def run_score(model_dir, testset_dir, output_dir):
     # === Score all test structures ===
     results = []
     for struct_file in test_files:
-        atoms = rna_extractor.extract_c3_atoms(struct_file)
-        s = score(atoms, reference_distributions)
+        if model.atom_mode == "all_atom":
+            residues = rna_extractor.extract_all_atom_residues(struct_file)
+            distances = model.residue_distances_all_atom(residues)
+            s = score_from_distances(distances, reference_distributions)
+        else:
+            atoms = rna_extractor.extract_c3_atoms(struct_file)
+            s = score(atoms, reference_distributions)
+
         print(f" - {os.path.basename(struct_file)}: {s:.4f}")
         results.append((os.path.basename(struct_file), s))
+
 
     # === Save results ===
     os.makedirs(output_dir, exist_ok=True)

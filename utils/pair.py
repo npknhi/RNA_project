@@ -1,3 +1,5 @@
+# utils/pair.py
+
 from itertools import combinations_with_replacement
 
 def normalize_pair(b1, b2):
