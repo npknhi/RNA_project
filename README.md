@@ -173,24 +173,24 @@ Controls the entire pipeline with user-friendly command-line arguments.
 ### **`utils/`**
 Contains core utilities: PDB/CIF parsing, distance computation, interpolation, and model configuration.
 
-# KDE
-Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. Especially useful for data distributions which are too irregular.
+## KDE
+**Definition:** Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. Especially useful for data distributions which are too irregular.
+
 
 Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)
 
-## Run KDE (python file)
-```bash
-python main.py --no-train --no-plot --no-score --make-kde
-```
+Here, we applied a KDE offo of the distances of every files contained in the `data/structures/test` folder.
 
-## Run KDE (Rscript)
+
+### Usage
 As of now:
-* you implicitly create a KDE plot with python file when creating `distances.csv`.
-* **you get this message twice**: Rscript does not open a graphics window like RStudio. R creates a null graphics device if no interactive device is available
+* Implicitly create a KDE plot with python file when creating `distances.csv`.
+* **You might get the message down below twice**: Rscript does not open a graphics window like RStudio. R creates a null graphics device if no interactive device is available
 ```
 null device 
           1
 ```
+
 
 ```bash
 # Create the distances file
@@ -246,4 +246,8 @@ The non-log scoring formulation can be selected at training time using:
 
 ```bash
 python main.py --score-formula linear
+```
 
+---
+## *.Gitignore* files
+`.gitignore` templates are available on a public repository (click [here](https://github.com/github/gitignore))
