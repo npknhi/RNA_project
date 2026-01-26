@@ -24,13 +24,22 @@ RNA_85_ATOMS = {
 
 def extract_c3_atoms(struct_path):
     """
-    Parse a PDB/CIF file using Biopython's PDBParser/MMCIFParser and extract all C3' atoms
-    belonging to standard RNA residues (A, U, G, C) from the first model.
+    Extract C3' atom coordinates from standard RNA residues
+    in a PDB or mmCIF structure.
 
-    Arguments:
+    The structure is parsed using Biopython, and only atoms from
+    the first model are considered. Only standard RNA residues
+    (A, U, G, C) are retained.
 
-    Returns:
-        list of lists: [chain_id, residue_name, x, y, z]
+    Parameters
+    ----------
+    struct_path : str
+        Path to a PDB or mmCIF structure file.
+
+    Returns
+    -------
+    list of lists
+        Each entry is [chain_id, resname, x, y, z].
     """
     
     # Automatically choose parser based on file extension 
@@ -67,10 +76,28 @@ def extract_c3_atoms(struct_path):
 
 def extract_all_atom_residues(struct_path):
     """
-    Extract all-atom coordinates per residue using the 85 RNA atom types list.
-    Returns:
+    Extract per-residue all-atom coordinates for standard RNA residues
+    using a predefined list of 85 RNA atom types.
+
+    The structure is parsed with Biopython, and only the first model
+    is processed. Non-standard residues, heteroatoms, and waters
+    are ignored.
+
+    Parameters
+    ----------
+    struct_path : str
+        Path to a PDB or mmCIF structure file.
+
+    Returns
+    -------
+    list of tuples - 
+        Each element is:
         [(chain_id, resseq, resname, coords_np_array(N,3)), ...]
+
+        where coords is a NumPy array of shape (N_atoms, 3) containing
+        the selected atom coordinates for that residue.
     """
+
     ext = os.path.splitext(struct_path)[1].lower()
 
     if ext in [".cif", ".mmcif"]:

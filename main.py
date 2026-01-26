@@ -93,15 +93,27 @@ def main():
 
     # ===== RUN THE SELECTED STEPS =====
     if run_training:
+        print("=== START TRAINING ===")
         training.run_train(args.trainset, args.profiles, score_formula=args.score_formula) 
+        print("=== END TRAINING ===")
+        print(f"\n================\n")
 
     if run_plotting:
+        print("=== START PLOTTING ===")
         plotting.make_plot()
+        print("=== END PLOTTING ===")
+        print(f"\n================\n")
+
+    if run_scoring:
+        print("=== START SCORING ===")
+        scoring.run_score(args.profiles, args.testset, args.scores)
+        print("=== END SCORING ===")
+        print(f"\n================\n")
 
     if run_kde:
         model.save_pairwise_distances(args.testset)
         
-        print(f"Starting KDE plots...")
+        print(f"START KDE PLOTS...")
         print(f"Bins Width:  ", model.bin_width)
         print(f"================\n")
         cmd = ["Rscript", "src/KDE.r", "data/distances.csv", str(model.bin_width)]
@@ -109,10 +121,7 @@ def main():
         print(result.stdout)
         print(f"KDE - DONE")
         print(f"================================\n")
-
-    if run_scoring:
-        scoring.run_score(args.profiles, args.testset, args.scores)
-
+        print(f"================\n")
 
 if __name__ == "__main__":
     main()

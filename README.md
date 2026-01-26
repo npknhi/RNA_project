@@ -26,6 +26,8 @@ The method learns interatomic distance distributions from experimentally solved 
 
 ```
 .
+├── Python.gitignore
+├── R.gitignore
 ├── README.md
 ├── main.py
 ├── environment.yml
@@ -174,24 +176,24 @@ Controls the entire pipeline with user-friendly command-line arguments.
 Contains core utilities: PDB/CIF parsing, distance computation, interpolation, and model configuration.
 
 ## KDE
-**Definition:** Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. Especially useful for data distributions which are too irregular.
+**Definition:** Kernel Density Estimator (KDE) is a rational and visually pleasant representation of the data distribution. It is especially useful for data distributions which are too irregular (source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)).
 
-
-Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)
-
-Here, we applied a KDE of the distances of every files contained in the `data/structures/test` folder.
+Here, we applied a KDE of the distances of every files contained in the `data/structures/test` folder.<br>
+The smoothed continuous estimates of the probability density of inter-residue distances helps us in comparing distance distributions across base-pair types and detecting preferred interaction distances.
 
 
 ### Usage
 Implicitly create a KDE plot with python file when creating `distances.csv`.
 
-* **From Python**
+* **Python**
 ```bash
 # Create the distances file
 python main.py --no-train --no-plot --no-score --make-kde --bin-width 1.0
 ```
 
-* **From R** (`distances.csv` must be written out before hand)
+* **R**
+
+**Caution:** `distances.csv` must be written out before hand
 ```bash
 Rscript src/KDE.r data/distances.csv 0.5
 ```

@@ -150,9 +150,21 @@ def score(reference_frequency, pair_frequency):
 
 def residue_distances_all_atom(residues):
     """
-    residues: [(chain_id, resseq, resname, coords(N,3)), ...]
-    Return list of (resname_i, resname_j, min_distance)
+    Compute minimal all-atom distances between residue pairs
+    within the same chain.
+
+    Parameters
+    ----------
+    residues : list of tuples - [(chain_id, resseq, resname, coords(N,3)), ...]
+        Each element is (chain_id, resseq, resname, coords),
+        where coords is a (N_atoms, 3) NumPy array.
+
+    Returns
+    -------
+    list of tuples
+        (resname_i, resname_j, min_distance)
     """
+
     if not residues:
         return []
 
@@ -185,8 +197,27 @@ def residue_distances_all_atom(residues):
 
 def distance_counts_all_atom(residues):
     """
-    Compute counts for reference and base pair-specific distributions using all-atom min distances.
+    Compute counts for reference and base pair-specific 
+    distributions using all-atom min distances.
+
+    For each residue pair, distances are accumulated into:
+    - a global (reference) distribution
+    - base-pair–specific distributions
+
+    Parameters
+    ----------
+    residues : list of tuples
+        Each element is (chain_id, resseq, resname, coords),
+        where coords is a (N_atoms, 3) NumPy array.
+
+    Returns
+    -------
+    reference_counts : list of int
+        Histogram of all residue-pair distances.
+    pair_counts : dict
+        Mapping base_pair -> histogram of distances.
     """
+
     pair_counts = {bp: [0] * num_bins for bp in base_pairs}
     reference_counts = [0] * num_bins
 
