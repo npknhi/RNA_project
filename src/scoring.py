@@ -1,6 +1,5 @@
 # src/scoring.py
 
-import math
 import os
 import argparse
 import datetime
@@ -13,7 +12,35 @@ import utils.model as model
 import utils.interpolation as interpolation
 
 def score_from_distances(distances, reference_distributions):
+    """
+    Compute a total interaction score from a set of pairwise residue distances
+    using precomputed reference distance-score distributions.
+
+    For each (residue_i, residue_j, distance) tuple, the corresponding reference
+    distribution is retrieved, and a score is obtained by linear interpolation
+    between the two nearest distance bin centers. Distances falling outside the
+    reference range are clamped to the nearest edge score.
+
+    Parameters
+    ----------
+    distances : iterable of tuple
+        Iterable of (residue_i, residue_j, d), where residue_i and residue_j
+        identify the residue types (e.g., nucleotides) and d is the distance
+        between them.
+
+    reference_distributions : dict
+        Dictionary mapping normalized residue pairs to NumPy arrays of shape
+        (N, 2), where the first column contains distance bin centers and the
+        second column contains the corresponding scores.
+
+    Returns
+    -------
+    float
+        The total score obtained by summing the interpolated scores for all
+        residue pairs.
+    """
     s = 0.0
+
     norm_pair = pair.normalize_pair
     lin_interp = interpolation.linear_interpolation
 
@@ -24,8 +51,10 @@ def score_from_distances(distances, reference_distributions):
         centers = rd[:, 0]
         scores  = rd[:, 1]
 
+        # Find where d fits in bin centers
         idx = np.searchsorted(centers, d)
 
+        # Clamp to edges
         if idx == 0:
             s += scores[0]
             continue

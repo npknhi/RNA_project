@@ -6,7 +6,7 @@ import src.training as training
 import src.plotting as plotting
 import src.scoring as scoring
 import utils.model as model
-
+import subprocess
 
 def main():
     parser = argparse.ArgumentParser(description="RNA scoring pipeline")
@@ -100,7 +100,15 @@ def main():
 
     if run_kde:
         model.save_pairwise_distances(args.testset)
-        plotting.plot_kde(bandwidth=model.bin_width)
+        
+        print(f"Starting KDE plots...")
+        print(f"Bins Width:  ", model.bin_width)
+        print(f"================\n")
+        cmd = ["Rscript", "src/KDE.r", "data/distances.csv", str(model.bin_width)]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(result.stdout)
+        print(f"KDE - DONE")
+        print(f"================================\n")
 
     if run_scoring:
         scoring.run_score(args.profiles, args.testset, args.scores)

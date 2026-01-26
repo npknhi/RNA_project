@@ -179,23 +179,21 @@ Contains core utilities: PDB/CIF parsing, distance computation, interpolation, a
 
 Source: [towardsdatascience.com](https://towardsdatascience.com/kernel-density-estimation-explained-step-by-step-7cc5b5bc4517/)
 
-Here, we applied a KDE offo of the distances of every files contained in the `data/structures/test` folder.
+Here, we applied a KDE of the distances of every files contained in the `data/structures/test` folder.
 
 
 ### Usage
-As of now:
-* Implicitly create a KDE plot with python file when creating `distances.csv`.
-* **You might get the message down below twice**: Rscript does not open a graphics window like RStudio. R creates a null graphics device if no interactive device is available
-```
-null device 
-          1
-```
+Implicitly create a KDE plot with python file when creating `distances.csv`.
 
-
+* **From Python**
 ```bash
 # Create the distances file
-python main.py --no-train --no-plot --no-score --make-kde
-Rscript src/KDE.r data/distances.csv TRUE
+python main.py --no-train --no-plot --no-score --make-kde --bin-width 1.0
+```
+
+* **From R** (`distances.csv` must be written out before hand)
+```bash
+Rscript src/KDE.r data/distances.csv 0.5
 ```
 
 ## Non-log Scoring Formula

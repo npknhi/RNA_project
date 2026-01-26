@@ -6,12 +6,10 @@
 args <- commandArgs(trailingOnly = TRUE)
 
 # Defaults
-distance_file <- ifelse(length(args) >= 1, args[1], "./distances.csv")
-header_flag <- ifelse(length(args) >= 2, tolower(args[2]) %in% c("true","t","1","yes","y"), TRUE)
-sep_char      <- ifelse(length(args) >= 3, args[3], "\t")
+distance_file <- ifelse(length(args) >= 1, args[1], "data/distances.csv")
+bw_value      <- ifelse(length(args) >= 2, as.numeric(args[2]), 0.5)
 
-bw_value <- 0.5
-plot_dir <- "data/plots"
+plot_dir <- file.path("data", "plots")
 
 # ------------------------
 # Create output directory
@@ -25,22 +23,31 @@ if (!dir.exists(plot_dir)) {
 # ------------------------
 data.df <- read.table(
   file = distance_file,
-  header = header_flag,
-  sep = sep_char,
+  header = TRUE,
+  sep = "\t",
   stringsAsFactors = FALSE
 )
 
 if (nrow(data.df) == 0) {
-  stop("Input file is empty")
+  stop(paste("No data found in", distance_file))
 }
 
 # Expected columns:
 # structure_file | base_pair | distance
 
+
+# ------------------------
+# Prepare KDE grid
+# ------------------------
+base_pairs   <- unique(data.df$base_pair)
+max_distance <- max(data.df$distance)
+grid_step    <- 0.1
+grid         <- seq(0, max_distance + grid_step, by = grid_step)
+data <- data.df$distance
+
 # ------------------------
 # 1) KDE + histogram (all base pairs pooled)
 # ------------------------
-data <- data.df$distance
 kde <- density(data, bw = bw_value)
 
 png(
@@ -68,13 +75,11 @@ hist(
   breaks = 30
 )
 
-dev.off()
+invisible(dev.off())
 
 # ------------------------
 # 2) KDE + histogram per base pair
 # ------------------------
-base_pairs <- unique(data.df$base_pair)
-
 for (bp in base_pairs) {
   
   data_bp <- data.df$distance[data.df$base_pair == bp]
@@ -107,16 +112,12 @@ for (bp in base_pairs) {
     breaks = 30
   )
   
-  dev.off()
+  invisible(dev.off())
 }
 
 # ------------------------
 # 3) Combined KDE plot
 # ------------------------
-max_distance <- max(data.df$distance)
-grid_step <- 0.1
-grid <- seq(0, max_distance + grid_step, by = grid_step)
-
 png(
   filename = file.path(plot_dir, "kde_all_base_pairs_combined.png"),
   width = 1000,
@@ -156,6 +157,6 @@ legend(
   cex = 0.8
 )
 
-dev.off()
+invisible(dev.off())
 
 cat("Plots successfully written to", plot_dir, "\n")
